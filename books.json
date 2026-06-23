@@ -2,6 +2,16 @@
   "hubTitle": "독서 기록",
   "books": [
     {
+      "slug": "singularity-nearer",
+      "title": "마침내 특이점이 시작된다",
+      "author": "레이 커즈와일",
+      "members": ["규리", "진영"],
+      "startDate": "2026-06-22",
+      "endDate": "2026-07-09",
+      "totalSessions": 14,
+      "status": "auto"
+    },
+    {
       "slug": "singularity",
       "title": "특이점이 온다",
       "author": "레이 커즈와일",
