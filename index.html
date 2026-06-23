@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>독서 기록</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --surface: #ffffff;
+    --ink: #1f1b16;
+    --ink-soft: #6b6359;
+    --line: #e8e2d8;
+    --accent: #5b4636;
+    --accent-soft: #ede4d3;
+    --ok: #4a7c59;
+    --ok-bg: #e3efe6;
+    --live: #1d4ed8;
+    --live-bg: #dbeafe;
+    --soon: #b8860b;
+    --soon-bg: #fbf2dc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  header.hero { border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 30px; }
+  header.hero h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.01em; }
+  header.hero .sub { color: var(--ink-soft); font-size: 14px; }
+
+  section { margin-bottom: 32px; }
+  section h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    font-weight: 600;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  section h2 .count { color: var(--ink); background: var(--accent-soft); border-radius: 10px; padding: 1px 9px; font-size: 12px; }
+
+  .book-card {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .book-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(91,70,54,0.10);
+    border-color: var(--accent);
+  }
+  .book-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .book-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .book-author { color: var(--ink-soft); font-size: 13px; margin-top: 2px; }
+  .badge {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 14px;
+    white-space: nowrap;
+  }
+  .badge.live { color: var(--live); background: var(--live-bg); }
+  .badge.done { color: var(--ok); background: var(--ok-bg); }
+  .badge.soon { color: var(--soon); background: var(--soon-bg); }
+  .book-meta { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--ink-soft); }
+  .book-meta b { color: var(--ink); font-weight: 600; }
+  .book-go { margin-top: 14px; font-size: 13px; color: var(--accent); font-weight: 600; }
+
+  .empty { text-align: center; padding: 50px 20px; color: var(--ink-soft); font-size: 14px; }
+  .err { background: #f8e3e3; color: #b04a4a; padding: 12px 16px; border-radius: 8px; font-size: 13px; }
+
+  @media (max-width: 520px) {
+    .wrap { padding: 28px 16px 60px; }
+    .book-top { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1 id="hub-title">독서 기록</h1>
+    <div class="sub" id="hub-sub"></div>
+  </header>
+  <div id="content"></div>
+</div>
+
+<script>
+function parseDate(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function today() {
+  const t = new Date();
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+}
+function fmtRange(start, end) {
+  const s = start ? start.replace(/-/g, '.').slice(2) : '?';
+  const e = end ? end.replace(/-/g, '.').slice(2) : '진행 중';
+  return `${s} ~ ${e}`;
+}
+function deriveStatus(book) {
+  if (book.status && book.status !== 'auto') return book.status;
+  const t = today();
+  const start = parseDate(book.startDate);
+  const end = parseDate(book.endDate);
+  if (start && t < start) return 'soon';
+  if (end && t > end) return 'done';
+  return 'live';
+}
+const STATUS_META = {
+  live: { label: '진행 중', cls: 'live', group: '🟢 진행 중', order: 0 },
+  soon: { label: '예정', cls: 'soon', group: '🗓 예정', order: 1 },
+  done: { label: '완독', cls: 'done', group: '✅ 완독', order: 2 },
+};
+
+function bookCard(book) {
+  const st = deriveStatus(book);
+  const meta = STATUS_META[st];
+  const members = (book.members || []).join(', ');
+  return `
+    <a class="book-card" href="./${encodeURIComponent(book.slug)}/">
+      <div class="book-top">
+        <div>
+          <div class="book-title">${escapeHtml(book.title)}</div>
+          <div class="book-author">${escapeHtml(book.author || '')}</div>
+        </div>
+        <span class="badge ${meta.cls}">${meta.label}</span>
+      </div>
+      <div class="book-meta">
+        <span>📅 ${fmtRange(book.startDate, book.endDate)}</span>
+        ${book.totalSessions ? `<span>📖 ${book.totalSessions}회차</span>` : ''}
+        ${members ? `<span>👥 ${escapeHtml(members)}</span>` : ''}
+      </div>
+      <div class="book-go">대시보드 열기 →</div>
+    </a>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+function render(data) {
+  document.getElementById('hub-title').textContent = data.hubTitle || '독서 기록';
+  const books = data.books || [];
+  const total = books.length;
+  const done = books.filter(b => deriveStatus(b) === 'done').length;
+  document.getElementById('hub-sub').textContent = `총 ${total}권 · 완독 ${done}권`;
+
+  if (total === 0) {
+    document.getElementById('content').innerHTML = '<div class="empty">아직 등록된 책이 없어요.<br>books.json에 첫 책을 추가하세요.</div>';
+    return;
+  }
+
+  const groups = {};
+  books.forEach(b => {
+    const st = deriveStatus(b);
+    (groups[st] = groups[st] || []).push(b);
+  });
+
+  const order = Object.keys(groups).sort((a, b) => STATUS_META[a].order - STATUS_META[b].order);
+  document.getElementById('content').innerHTML = order.map(st => {
+    const list = groups[st];
+    return `
+      <section>
+        <h2>${STATUS_META[st].group} <span class="count">${list.length}</span></h2>
+        ${list.map(bookCard).join('')}
+      </section>`;
+  }).join('');
+}
+
+fetch('books.json?_=' + Date.now())
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(render)
+  .catch(() => {
+    document.getElementById('content').innerHTML = '<div class="err">books.json을 불러오지 못했어요. 파일이 같은 폴더에 있는지 확인하세요.</div>';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "hubTitle": "독서 기록",
+  "books": [
+    {
+      "slug": "singularity",
+      "title": "특이점이 온다",
+      "author": "레이 커즈와일",
+      "members": ["규리", "진영", "유리"],
+      "startDate": "2026-05-11",
+      "endDate": "2026-06-11",
+      "totalSessions": 24,
+      "status": "auto"
+    }
+  ]
+}

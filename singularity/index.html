@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>독서 모임 대시보드</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --surface: #ffffff;
+    --ink: #1f1b16;
+    --ink-soft: #6b6359;
+    --line: #e8e2d8;
+    --accent: #5b4636;
+    --accent-soft: #ede4d3;
+    --ok: #4a7c59;
+    --ok-bg: #e3efe6;
+    --late: #b8860b;
+    --late-bg: #fbf2dc;
+    --miss: #b04a4a;
+    --miss-bg: #f8e3e3;
+    --pending: #c9c2b6;
+    --pending-bg: #f3efe7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  header.hero {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+  }
+  header.hero h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    letter-spacing: -0.01em;
+  }
+  header.hero .meta {
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+  header.hero .meta span + span::before {
+    content: " · ";
+    margin: 0 4px;
+    color: var(--line);
+  }
+
+  section { margin-bottom: 28px; }
+  section h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .card .label { color: var(--ink-soft); font-size: 12px; }
+  .card .value { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  .card .sub { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+  .value-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
+  .icon-wrap { flex-shrink: 0; color: var(--accent); display: flex; align-items: center; }
+
+  .battery {
+    display: inline-flex;
+    align-items: center;
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    padding: 3px;
+    gap: 3px;
+    position: relative;
+  }
+  .battery::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 12px;
+    background: var(--ink);
+    border-radius: 0 2px 2px 0;
+  }
+  .battery-cell {
+    width: 10px;
+    height: 20px;
+    background: transparent;
+    border-radius: 2px;
+    transition: background 0.5s ease;
+  }
+  .battery-cell.filled { background: var(--ok); }
+
+  .progress-ring .ring-bg { stroke: var(--accent-soft); }
+  .progress-ring .ring-fg { stroke: var(--accent); transition: stroke-dasharray 0.6s ease; }
+
+  .log-total {
+    color: var(--ink-soft);
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .log-total b { color: var(--ink); font-weight: 600; font-size: 14px; }
+
+  .log-master {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .log-master > summary {
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    list-style: none;
+    font-size: 14px;
+    user-select: none;
+  }
+  .log-master > summary::-webkit-details-marker { display: none; }
+  .master-icon { color: var(--ink-soft); font-size: 14px; }
+  .master-label { font-weight: 600; color: var(--ink); }
+  .master-arrow {
+    color: var(--ink-soft);
+    font-size: 16px;
+    transition: transform 0.25s ease;
+    line-height: 1;
+    margin-left: auto;
+  }
+  .log-master[open] .master-arrow { transform: rotate(180deg); }
+  #log-list {
+    padding: 4px 16px 16px;
+    border-top: 1px solid var(--line);
+  }
+  #log-list .session-block:last-child { margin-bottom: 0; }
+
+  .log-filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .log-filter {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--ink-soft);
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .log-filter.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .log-filter:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+  .session-block {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .session-block summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+    list-style: none;
+  }
+  .session-block summary::-webkit-details-marker { display: none; }
+  .session-block summary::before {
+    content: '▸';
+    color: var(--ink-soft);
+    transition: transform 0.2s;
+    display: inline-block;
+    font-size: 11px;
+  }
+  .session-block[open] summary::before { transform: rotate(90deg); }
+  .session-num { font-weight: 600; color: var(--accent); min-width: 46px; }
+  .session-date { color: var(--ink-soft); min-width: 84px; }
+  .session-pages { color: var(--ink-soft); font-size: 12px; flex: 1; min-width: 0; }
+  .session-count { color: var(--ink-soft); font-size: 12px; white-space: nowrap; }
+
+  .session-body {
+    padding: 4px 16px 16px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .member-content {
+    border-left: 3px solid var(--accent-soft);
+    padding: 8px 0 8px 14px;
+  }
+  .member-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .member-date {
+    color: var(--ink-soft);
+    font-weight: 400;
+    font-size: 12px;
+  }
+  .member-text {
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+
+  .empty-section {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--ink-soft);
+    font-size: 13px;
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+  }
+
+  .person-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .person {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .person .name {
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .person .pct { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .person .bar { height: 6px; background: var(--accent-soft); border-radius: 3px; margin: 10px 0 12px; overflow: hidden; }
+  .person .bar > div { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s ease; }
+  .person .stats { font-size: 12px; color: var(--ink-soft); display: flex; gap: 14px; }
+  .person .stats b { color: var(--ink); font-weight: 600; }
+
+  table.matrix {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  table.matrix th, table.matrix td {
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+  }
+  table.matrix th {
+    background: #f5f0e6;
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 12px;
+  }
+  table.matrix th:first-child, table.matrix td:first-child { text-align: left; padding-left: 16px; }
+  table.matrix th:last-child, table.matrix td:last-child { padding-right: 16px; }
+  table.matrix tr:last-child td { border-bottom: none; }
+  table.matrix tr.today { background: #fffaf0; }
+  table.matrix tr.today td:first-child { font-weight: 600; }
+  table.matrix .pages { color: var(--ink-soft); font-size: 11px; margin-left: 6px; }
+  .cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 22px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 0;
+  }
+  .cell.ok { color: var(--ok); background: var(--ok-bg); }
+  .cell.late { color: var(--late); background: var(--late-bg); }
+  .cell.miss { color: var(--miss); background: var(--miss-bg); }
+  .cell.pending { color: var(--pending); background: var(--pending-bg); }
+  .cell.today { color: #1d4ed8; background: #dbeafe; }
+  .cell .date { font-weight: 400; opacity: 0.75; margin-left: 4px; font-size: 11px; }
+
+  .legend { display: flex; gap: 12px; font-size: 12px; color: var(--ink-soft); margin-bottom: 10px; flex-wrap: wrap; }
+  .legend .item { display: inline-flex; align-items: center; gap: 4px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  .drop {
+    display: block;
+    border: 2px dashed var(--line);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    color: var(--ink-soft);
+    background: var(--surface);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .drop > div { margin-bottom: 4px; }
+  .drop.over { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .drop button {
+    display: inline-block;
+    margin-top: 10px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .drop input[type=file] { display: none; }
+  .source {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 14px;
+    text-align: right;
+  }
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .err {
+    background: var(--miss-bg);
+    color: var(--miss);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 20px 16px 60px; }
+    table.matrix { font-size: 12px; }
+    table.matrix th, table.matrix td { padding: 6px 6px; }
+    table.matrix th:first-child, table.matrix td:first-child { padding-left: 10px; }
+    table.matrix th:last-child, table.matrix td:last-child { padding-right: 10px; }
+    .cell { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1 id="m-title">독서 모임</h1>
+    <div class="meta">
+      <span id="m-author"></span>
+      <span id="m-range">p.11 ~ p.686 (총 676쪽)</span>
+      <span id="m-schedule">23회차 · 월~금 30쪽/일</span>
+      <span id="m-period">2026-05-11 → 2026-06-10</span>
+    </div>
+  </header>
+
+  <section id="overview">
+    <h2>한눈에</h2>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="people">
+    <h2>참여자별 페이스</h2>
+    <div class="person-grid" id="people-grid"></div>
+  </section>
+
+  <section id="matrix-section">
+    <h2>회차별 현황</h2>
+    <div class="legend">
+      <span class="item"><span class="dot" style="background: var(--ok-bg); border: 1px solid var(--ok);"></span> 완료</span>
+      <span class="item"><span class="dot" style="background: #dbeafe; border: 1px solid #1d4ed8;"></span> 진행중 (오늘)</span>
+      <span class="item"><span class="dot" style="background: var(--miss-bg); border: 1px solid var(--miss);"></span> 미완료</span>
+      <span class="item"><span class="dot" style="background: var(--pending-bg); border: 1px solid var(--pending);"></span> 예정</span>
+    </div>
+    <table class="matrix" id="matrix"></table>
+  </section>
+
+  <section id="logs-section">
+    <h2 id="logs-title">독서 로그</h2>
+    <div class="log-total" id="log-total"></div>
+    <div class="log-filters" id="log-filters"></div>
+    <details class="log-master" id="log-master">
+      <summary>
+        <span class="master-icon">▦</span>
+        <span class="master-label" id="master-label">펼치기</span>
+        <span class="master-arrow">⌄</span>
+      </summary>
+      <div id="log-list"></div>
+    </details>
+  </section>
+
+  <section id="upload-section" style="display:none">
+    <h2>카톡 대화 업로드</h2>
+    <label class="drop" id="drop">
+      <div>여기에 카카오톡 대화 내보내기(<b>.txt</b>) 파일을 놓거나</div>
+      <button type="button" id="browse-btn">파일 선택</button>
+      <input type="file" id="file-input" accept=".txt,text/plain">
+      <div class="source" id="source-note"></div>
+    </label>
+    <div id="err" class="err" style="display:none"></div>
+  </section>
+</div>
+
+<script>
+const CONFIG = {
+  book: {
+    title: '특이점이 온다',
+    author: '레이 커즈와일',
+  },
+  members: ['규리', '진영', '유리'],
+  startDate: '2026-05-11',
+  totalSessions: 24,
+  startPage: 1,
+  endPage: 699,
+  pagesPerSession: 30,
+  today: null,
+};
+
+function pad(n) { return String(n).padStart(2, '0'); }
+function fmtDate(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function fmtShort(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
+function parseDate(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function dayOfWeek(d) { return ['일','월','화','수','목','금','토'][d.getDay()]; }
+function diffDays(a, b) {
+  return Math.round((a - b) / 86400000);
+}
+
+function generateSchedule() {
+  const sched = [];
+  const start = parseDate(CONFIG.startDate);
+  let cur = new Date(start);
+  for (let i = 1; i <= CONFIG.totalSessions; i++) {
+    while (cur.getDay() === 0 || cur.getDay() === 6) cur.setDate(cur.getDate()+1);
+    let sp, ep;
+    if (i === 1) {
+      sp = CONFIG.startPage;
+      ep = CONFIG.pagesPerSession;
+    } else {
+      sp = (i - 1) * CONFIG.pagesPerSession + 1;
+      ep = Math.min(i * CONFIG.pagesPerSession, CONFIG.endPage);
+    }
+    sched.push({ session: i, date: new Date(cur), startPage: sp, endPage: ep });
+    cur.setDate(cur.getDate()+1);
+  }
+  return sched;
+}
+
+function parseChat(text) {
+  const completions = [];
+  const namePattern = CONFIG.members.join('|');
+  const re = new RegExp(`(\\d{1,2})[\\/.](\\d{1,2})\\s+(${namePattern})\\s*_\\s*(\\d+)\\s*회\\s*차\\s*미\\s*션\\s*완\\s*료[^\\n]*`, 'g');
+  const stopRe = /\n(?:\[[^\]\n]+\]\s*\[(?:오전|오후)\s*\d|-+\s*\d{4}년)/;
+  const year = parseDate(CONFIG.startDate).getFullYear();
+  let m;
+  const seen = new Set();
+  while ((m = re.exec(text)) !== null) {
+    const month = +m[1], day = +m[2], name = m[3], session = +m[4];
+    const key = `${name}|${session}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const matchEnd = m.index + m[0].length;
+    const rest = text.substring(matchEnd);
+    const stop = rest.match(stopRe);
+    const contentEnd = stop ? stop.index : rest.length;
+    const content = rest.substring(0, contentEnd)
+      .replace(/^-+\s*\d{4}년\s*\d{1,2}월\s*\d{1,2}일.*$/gm, '')
+      .trim();
+    completions.push({
+      name, session,
+      claimedDate: new Date(year, month-1, day),
+      content
+    });
+  }
+  return completions;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[c]));
+}
+
+function getToday() {
+  if (CONFIG.today) return parseDate(CONFIG.today);
+  const t = new Date();
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+}
+
+function classify(comp, sched, today) {
+  if (!comp) {
+    if (today < sched.date) return { kind: 'pending', label: '예정' };
+    if (fmtDate(today) === fmtDate(sched.date)) return { kind: 'today', label: '진행중' };
+    return { kind: 'miss', label: '미완료' };
+  }
+  return { kind: 'ok', label: '✓', date: fmtShort(comp.claimedDate) };
+}
+
+function render(completions) {
+  const sched = generateSchedule();
+  const today = getToday();
+  const byPerson = {};
+  CONFIG.members.forEach(n => byPerson[n] = {});
+  completions.forEach(c => { byPerson[c.name][c.session] = c; });
+
+  const elapsedSessions = sched.filter(s => s.date <= today).length;
+
+  const endDate = sched[sched.length-1].date;
+  const daysToEnd = diffDays(endDate, today);
+  let ddayLabel;
+  if (daysToEnd > 0) ddayLabel = `D-${daysToEnd}`;
+  else if (daysToEnd === 0) ddayLabel = 'D-day';
+  else ddayLabel = `종료 +${-daysToEnd}일`;
+
+  const todayIdx = sched.findIndex(s => fmtDate(s.date) === fmtDate(today));
+  let sessionLabel;
+  if (todayIdx === -1) {
+    const next = sched.find(s => s.date > today);
+    if (next) sessionLabel = `다음 ${next.session}회차 (${fmtShort(next.date)})`;
+    else if (today > sched[sched.length-1].date) sessionLabel = '모임 종료';
+    else sessionLabel = '주말';
+  } else {
+    sessionLabel = `${sched[todayIdx].session}회차 진행중`;
+  }
+
+  let todayPct, todaySub, todayDone;
+  if (todayIdx === -1) {
+    todayPct = '—';
+    todaySub = sessionLabel;
+    todayDone = 0;
+  } else {
+    const todaySessionNum = sched[todayIdx].session;
+    todayDone = completions.filter(c => c.session === todaySessionNum).length;
+    todayPct = Math.round(todayDone / CONFIG.members.length * 100) + '%';
+    todaySub = `${CONFIG.members.length}명 중 ${todayDone}명 완료`;
+  }
+
+  const calIcon = `
+    <svg width="40" height="40" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="7" width="28" height="26" rx="3"/>
+      <line x1="4" y1="15" x2="32" y2="15"/>
+      <line x1="11" y1="3" x2="11" y2="11"/>
+      <line x1="25" y1="3" x2="25" y2="11"/>
+      <text x="18" y="28" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor" stroke="none" font-family="inherit">${today.getDate()}</text>
+    </svg>`;
+
+  const batteryIcon = `
+    <div class="battery" title="${todayDone}/${CONFIG.members.length}">
+      ${CONFIG.members.map((_, i) => `<div class="battery-cell${i < todayDone ? ' filled' : ''}"></div>`).join('')}
+    </div>`;
+
+  const ringR = 16;
+  const ringC = 2 * Math.PI * ringR;
+  const ringProgress = (elapsedSessions / CONFIG.totalSessions) * ringC;
+  const ringIcon = `
+    <svg class="progress-ring" width="40" height="40" viewBox="0 0 40 40">
+      <circle class="ring-bg" cx="20" cy="20" r="${ringR}" fill="none" stroke-width="4"/>
+      <circle class="ring-fg" cx="20" cy="20" r="${ringR}" fill="none" stroke-width="4"
+        stroke-dasharray="${ringProgress.toFixed(2)} ${ringC.toFixed(2)}"
+        transform="rotate(-90 20 20)" stroke-linecap="round"/>
+    </svg>`;
+
+  document.getElementById('cards').innerHTML = `
+    <div class="card">
+      <div class="label">오늘</div>
+      <div class="value-row">
+        <div class="value">${fmtShort(today)} (${dayOfWeek(today)})</div>
+        <div class="icon-wrap">${calIcon}</div>
+      </div>
+      <div class="sub">${ddayLabel} · ${sessionLabel}</div>
+    </div>
+    <div class="card">
+      <div class="label">오늘 완료율</div>
+      <div class="value-row">
+        <div class="value">${todayPct}</div>
+        <div class="icon-wrap">${batteryIcon}</div>
+      </div>
+      <div class="sub">${todaySub}</div>
+    </div>
+    <div class="card">
+      <div class="label">남은 회차</div>
+      <div class="value-row">
+        <div class="value">${CONFIG.totalSessions - elapsedSessions}</div>
+        <div class="icon-wrap">${ringIcon}</div>
+      </div>
+      <div class="sub">총 ${CONFIG.totalSessions}회 중 ${elapsedSessions}회 경과</div>
+    </div>
+  `;
+
+  document.getElementById('people-grid').innerHTML = CONFIG.members.map(name => {
+    const done = Object.keys(byPerson[name]).length;
+    const expected = elapsedSessions;
+    const missed = sched.filter(s => s.date < today && !byPerson[name][s.session]).length;
+    const pct = expected ? Math.round(done/expected*100) : 0;
+    return `
+      <div class="person">
+        <div class="name"><span>${name}</span><span class="pct">${pct}%</span></div>
+        <div class="bar"><div style="width:${Math.min(100,pct)}%"></div></div>
+        <div class="stats">
+          <span>완료 <b>${done}</b>건 · 미완료 <b>${missed}</b>건</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  renderLogs(completions, sched);
+
+  const headRow = `<tr><th>회차</th>${CONFIG.members.map(n => `<th>${n}</th>`).join('')}</tr>`;
+  const bodyRows = sched.map(s => {
+    const isToday = fmtDate(s.date) === fmtDate(today);
+    const cells = CONFIG.members.map(name => {
+      const c = byPerson[name][s.session];
+      const r = classify(c, s, today);
+      const dateStr = r.date ? `<span class="date">${r.date}</span>` : '';
+      return `<td><span class="cell ${r.kind}">${r.label}${dateStr}</span></td>`;
+    }).join('');
+    const label = `${s.session}회 <span class="pages">${fmtShort(s.date)}(${dayOfWeek(s.date)}) · p.${s.startPage}~${s.endPage}</span>`;
+    return `<tr${isToday?' class="today"':''}><td>${label}</td>${cells}</tr>`;
+  }).join('');
+  document.getElementById('matrix').innerHTML = headRow + bodyRows;
+}
+
+function renderEmpty() {
+  document.getElementById('cards').innerHTML = '<div class="empty" style="grid-column:1/-1">아직 데이터가 없어요. 아래에 카톡 대화 파일을 올려주세요.</div>';
+  document.getElementById('people-grid').innerHTML = '';
+  document.getElementById('matrix').innerHTML = '';
+  document.getElementById('log-filters').innerHTML = '';
+  document.getElementById('log-list').innerHTML = '';
+  document.getElementById('log-total').innerHTML = '';
+  document.getElementById('log-master').style.display = 'none';
+}
+
+function renderLogs(completions, sched) {
+  const filters = document.getElementById('log-filters');
+  const list = document.getElementById('log-list');
+  const totalEl = document.getElementById('log-total');
+  const masterEl = document.getElementById('log-master');
+  const masterLabel = document.getElementById('master-label');
+
+  filters.innerHTML = `
+    <button class="log-filter active" data-name="all">전체</button>
+    ${CONFIG.members.map(n => `<button class="log-filter" data-name="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('')}
+  `;
+  list.dataset.filter = 'all';
+
+  if (completions.length === 0) {
+    totalEl.innerHTML = '전체 <b>0</b>편';
+    masterEl.style.display = 'none';
+    list.innerHTML = '<div class="empty-section">아직 작성된 로그가 없어요.</div>';
+  } else {
+    masterEl.style.display = '';
+    const bySession = {};
+    completions.forEach(c => {
+      if (!bySession[c.session]) bySession[c.session] = {};
+      bySession[c.session][c.name] = c;
+    });
+    const sessionNums = Object.keys(bySession).map(Number).sort((a, b) => a - b);
+    const sessionCount = sessionNums.length;
+    totalEl.innerHTML = `전체 <b>${sessionCount}</b>편`;
+    masterEl.open = false;
+    const updateMasterLabel = () => {
+      masterLabel.textContent = `전체 ${sessionCount}편 ${masterEl.open ? '접기' : '펼치기'}`;
+    };
+    updateMasterLabel();
+    masterEl.ontoggle = updateMasterLabel;
+
+    list.innerHTML = sessionNums.map((n, idx) => {
+      const s = sched[n - 1];
+      const entries = bySession[n];
+      const doneCount = Object.keys(entries).length;
+      const total = CONFIG.members.length;
+      const memberBlocks = CONFIG.members.map(name => {
+        const e = entries[name];
+        if (!e) return '';
+        const text = e.content ? escapeHtml(e.content) : '<em style="color:var(--ink-soft)">(느낀점 없음)</em>';
+        return `
+          <div class="member-content" data-name="${escapeHtml(name)}">
+            <div class="member-name">${escapeHtml(name)}<span class="member-date">${fmtShort(e.claimedDate)}</span></div>
+            <div class="member-text">${text}</div>
+          </div>`;
+      }).filter(Boolean).join('');
+      return `
+        <details class="session-block"${idx === sessionNums.length - 1 ? ' open' : ''}>
+          <summary>
+            <span class="session-num">${n}회차</span>
+            <span class="session-date">${fmtShort(s.date)}(${dayOfWeek(s.date)})</span>
+            <span class="session-pages">p.${s.startPage}~${s.endPage}</span>
+            <span class="session-count">${doneCount}/${total} 완료</span>
+          </summary>
+          <div class="session-body">${memberBlocks}</div>
+        </details>`;
+    }).join('');
+  }
+
+  function applyFilter() {
+    const f = list.dataset.filter || 'all';
+    list.querySelectorAll('.session-block').forEach(block => {
+      let visible = 0;
+      block.querySelectorAll('.member-content').forEach(mc => {
+        const show = (f === 'all' || mc.dataset.name === f);
+        mc.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      block.style.display = visible > 0 ? '' : 'none';
+      const countEl = block.querySelector('.session-count');
+      if (countEl) countEl.style.display = (f === 'all') ? '' : 'none';
+    });
+  }
+
+  filters.querySelectorAll('.log-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filters.querySelectorAll('.log-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      list.dataset.filter = btn.dataset.name;
+      applyFilter();
+      masterEl.open = true;
+    });
+  });
+}
+
+function showError(msg) {
+  const el = document.getElementById('err');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function loadText(text, source) {
+  try {
+    const comps = parseChat(text);
+    render(comps);
+    document.getElementById('source-note').textContent = `${source} · ${comps.length}건 인식`;
+    document.getElementById('err').style.display = 'none';
+  } catch (e) {
+    showError(`파싱 실패: ${e.message}`);
+  }
+}
+
+const dropEl = document.getElementById('drop');
+const fileInput = document.getElementById('file-input');
+document.getElementById('browse-btn').onclick = (e) => { e.preventDefault(); fileInput.click(); };
+fileInput.onchange = (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => loadText(r.result, `로컬 파일: ${f.name}`);
+  r.readAsText(f, 'UTF-8');
+};
+['dragenter','dragover'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('over'); }));
+dropEl.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => loadText(r.result, `로컬 파일: ${f.name}`);
+  r.readAsText(f, 'UTF-8');
+});
+
+document.title = `${CONFIG.book.title} — 독서 모임 대시보드`;
+document.getElementById('m-title').textContent = `${CONFIG.book.title} · 독서 모임`;
+document.getElementById('m-author').textContent = CONFIG.book.author;
+
+const headerSched = generateSchedule();
+const totalPages = CONFIG.endPage - CONFIG.startPage + 1;
+document.getElementById('m-range').textContent = `p.${CONFIG.startPage} ~ p.${CONFIG.endPage} (총 ${totalPages}쪽)`;
+document.getElementById('m-schedule').textContent = `${CONFIG.totalSessions}회차 · 월~금 ${CONFIG.pagesPerSession}쪽/일`;
+document.getElementById('m-period').textContent = `${CONFIG.startDate} → ${fmtDate(headerSched[headerSched.length-1].date)}`;
+
+fetch('chat.txt?_=' + Date.now())
+  .then(r => r.ok ? r.text() : Promise.reject())
+  .then(text => loadText(text, 'chat.txt (자동 로드)'))
+  .catch(() => {
+    document.getElementById('upload-section').style.display = 'block';
+    renderEmpty();
+  });
+</script>
+</body>
+</html>
