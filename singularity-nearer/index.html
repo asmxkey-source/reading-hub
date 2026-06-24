@@ -443,7 +443,7 @@ const CONFIG = {
     author: '레이 커즈와일',
   },
   members: ['규리', '진영'],
-  startDate: '2026-06-22',
+  startDate: '2026-06-29',
   totalSessions: 14,
   startPage: 6,
   endPage: 393,
@@ -793,7 +793,7 @@ dropEl.addEventListener('drop', e => {
 });
 
 document.title = `${CONFIG.book.title} — 독서 모임 대시보드`;
-document.getElementById('m-title').textContent = `${CONFIG.book.title} · 독서 모임`;
+document.getElementById('m-title').textContent = CONFIG.book.title;
 document.getElementById('m-author').textContent = CONFIG.book.author;
 
 const headerSched = generateSchedule();

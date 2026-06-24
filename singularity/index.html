@@ -793,7 +793,7 @@ dropEl.addEventListener('drop', e => {
 });
 
 document.title = `${CONFIG.book.title} — 독서 모임 대시보드`;
-document.getElementById('m-title').textContent = `${CONFIG.book.title} · 독서 모임`;
+document.getElementById('m-title').textContent = CONFIG.book.title;
 document.getElementById('m-author').textContent = CONFIG.book.author;
 
 const headerSched = generateSchedule();
