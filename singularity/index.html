@@ -487,7 +487,7 @@ function parseChat(text) {
   const completions = [];
   const namePattern = CONFIG.members.join('|');
   const re = new RegExp(`(\\d{1,2})[\\/.](\\d{1,2})\\s+(${namePattern})\\s*_\\s*(\\d+)\\s*회\\s*차\\s*미\\s*션\\s*완\\s*료[^\\n]*`, 'g');
-  const stopRe = /\n(?:\[[^\]\n]+\]\s*\[(?:오전|오후)\s*\d|-+\s*\d{4}년)/;
+  const stopRe = /\n(?:\[[^\]\n]+\]\s*\[(?:오전|오후)\s*\d|-{5,}\s*\d{4}년)/;
   const year = parseDate(CONFIG.startDate).getFullYear();
   let m;
   const seen = new Set();
@@ -501,7 +501,7 @@ function parseChat(text) {
     const stop = rest.match(stopRe);
     const contentEnd = stop ? stop.index : rest.length;
     const content = rest.substring(0, contentEnd)
-      .replace(/^-+\s*\d{4}년\s*\d{1,2}월\s*\d{1,2}일.*$/gm, '')
+      .replace(/^-{5,}\s*\d{4}년\s*\d{1,2}월\s*\d{1,2}일.*$/gm, '')
       .trim();
     completions.push({
       name, session,
