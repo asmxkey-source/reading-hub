@@ -88,6 +88,110 @@
   .empty { text-align: center; padding: 56px 20px; color: var(--ink-soft); font-size: 15px; }
   .err { background: var(--soon-bg); color: #9a3a1a; padding: 12px 16px; border-radius: 12px; font-size: 14px; }
 
+  .search-wrap {
+    position: relative;
+    margin: 0 0 36px;
+  }
+  .search-input {
+    width: 100%;
+    padding: 14px 20px 14px 46px;
+    font-size: 16px;
+    font-family: inherit;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 9999px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.12);
+  }
+  .search-input::placeholder { color: var(--ink-faint); }
+  .search-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-faint);
+    pointer-events: none;
+  }
+  .search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    padding: 6px 10px;
+    font-family: inherit;
+    display: none;
+    line-height: 1;
+  }
+  .search-clear:hover { color: var(--ink); }
+  .search-wrap.has-query .search-clear { display: block; }
+
+  .search-results { display: none; }
+  .search-active .search-results { display: block; }
+  .search-active #content { display: none; }
+
+  .search-summary {
+    color: var(--ink-soft);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .search-summary b { color: var(--ink); font-weight: 600; }
+
+  .result-card {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    padding: 18px 22px;
+    margin-bottom: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+  }
+  .result-card:hover { transform: translateY(-1px); border-color: var(--ink-faint); }
+  .result-card:active { transform: scale(0.995); }
+
+  .result-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .result-book { color: var(--ink); font-weight: 600; }
+  .result-sep { color: var(--ink-faint); }
+  .result-name { color: var(--accent); font-weight: 600; }
+  .result-snippet {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+  .result-snippet mark {
+    background: #fff2a6;
+    color: inherit;
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+  .search-empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--ink-soft);
+    font-size: 15px;
+  }
+
   @media (max-width: 520px) {
     .wrap { padding: 40px 16px 64px; }
     header.hero h1 { font-size: 30px; }
@@ -101,7 +205,18 @@
     <h1 id="hub-title">독서 기록</h1>
     <div class="sub" id="hub-sub"></div>
   </header>
+
+  <div class="search-wrap" id="search-wrap">
+    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="7"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" id="search-input" class="search-input" placeholder="느낀점에서 검색... (2자 이상)" autocomplete="off">
+    <button type="button" id="search-clear" class="search-clear" aria-label="지우기">×</button>
+  </div>
+
   <div id="content"></div>
+  <div class="search-results" id="search-results"></div>
 </div>
 
 <script>
@@ -189,9 +304,129 @@ function render(data) {
   }).join('');
 }
 
+function parseChatFor(text, members) {
+  const entries = [];
+  const namePattern = members.join('|');
+  const re = new RegExp(`(\\d{1,2})[\\/.](\\d{1,2})\\s+(${namePattern})\\s*_\\s*(\\d+)\\s*회\\s*차\\s*미\\s*션\\s*완\\s*료[^\\n]*`, 'g');
+  const stopRe = /\n(?:\[[^\]\n]+\]\s*\[(?:오전|오후)\s*\d|-{5,}\s*\d{4}년)/;
+  let m;
+  const seen = new Set();
+  while ((m = re.exec(text)) !== null) {
+    const month = +m[1], day = +m[2], name = m[3], session = +m[4];
+    const key = `${name}|${session}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const matchEnd = m.index + m[0].length;
+    const rest = text.substring(matchEnd);
+    const stop = rest.match(stopRe);
+    const contentEnd = stop ? stop.index : rest.length;
+    const content = rest.substring(0, contentEnd)
+      .replace(/^-{5,}\s*\d{4}년\s*\d{1,2}월\s*\d{1,2}일.*$/gm, '')
+      .trim();
+    entries.push({ name, session, month, day, content });
+  }
+  return entries;
+}
+
+let ALL_ENTRIES = [];
+
+async function loadAllEntries(books) {
+  const results = await Promise.all(books.map(async (book) => {
+    try {
+      const r = await fetch(`./${encodeURIComponent(book.slug)}/chat.txt?_=${Date.now()}`);
+      if (!r.ok) return [];
+      const text = await r.text();
+      const members = book.members || [];
+      if (members.length === 0) return [];
+      const parsed = parseChatFor(text, members);
+      return parsed.map(e => ({
+        bookSlug: book.slug,
+        bookTitle: book.title,
+        name: e.name,
+        session: e.session,
+        month: e.month,
+        day: e.day,
+        content: e.content,
+      }));
+    } catch { return []; }
+  }));
+  return results.flat();
+}
+
+function makeSnippet(content, query, radius = 40) {
+  const lc = content.toLowerCase();
+  const q = query.toLowerCase();
+  const idx = lc.indexOf(q);
+  if (idx === -1) return escapeHtml(content.slice(0, 80)) + (content.length > 80 ? '…' : '');
+  const start = Math.max(0, idx - radius);
+  const end = Math.min(content.length, idx + query.length + radius);
+  const before = start > 0 ? '…' : '';
+  const after = end < content.length ? '…' : '';
+  const raw = content.slice(start, end);
+  const highlighted = escapeHtml(raw).replace(
+    new RegExp(escapeRegex(query), 'gi'),
+    m => `<mark>${m}</mark>`
+  );
+  return `${before}${highlighted}${after}`.replace(/\n+/g, ' ');
+}
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function runSearch(query) {
+  const wrap = document.getElementById('search-wrap');
+  const resultsEl = document.getElementById('search-results');
+  const q = query.trim();
+  wrap.classList.toggle('has-query', q.length > 0);
+  if (q.length < 2) {
+    document.body.classList.remove('search-active');
+    resultsEl.innerHTML = '';
+    return;
+  }
+  document.body.classList.add('search-active');
+  const qLc = q.toLowerCase();
+  const hits = ALL_ENTRIES.filter(e => e.content.toLowerCase().includes(qLc));
+  if (hits.length === 0) {
+    resultsEl.innerHTML = `<div class="search-summary"><b>${escapeHtml(q)}</b> 검색 결과 없음</div>`;
+    return;
+  }
+  const summary = `<div class="search-summary"><b>${escapeHtml(q)}</b> — 결과 ${hits.length}건</div>`;
+  const items = hits.map(e => `
+    <a class="result-card" href="./${encodeURIComponent(e.bookSlug)}/">
+      <div class="result-meta">
+        <span class="result-book">📖 ${escapeHtml(e.bookTitle)}</span>
+        <span class="result-sep">·</span>
+        <span>${e.session}회차</span>
+        <span class="result-sep">·</span>
+        <span class="result-name">${escapeHtml(e.name)}</span>
+        <span class="result-sep">·</span>
+        <span>${e.month}/${e.day}</span>
+      </div>
+      <div class="result-snippet">${makeSnippet(e.content, q)}</div>
+    </a>
+  `).join('');
+  resultsEl.innerHTML = summary + items;
+}
+
+function initSearch() {
+  const input = document.getElementById('search-input');
+  const clear = document.getElementById('search-clear');
+  input.addEventListener('input', (e) => runSearch(e.target.value));
+  clear.addEventListener('click', () => {
+    input.value = '';
+    input.focus();
+    runSearch('');
+  });
+}
+
 fetch('books.json?_=' + Date.now())
   .then(r => r.ok ? r.json() : Promise.reject())
-  .then(render)
+  .then(async (data) => {
+    render(data);
+    initSearch();
+    ALL_ENTRIES = await loadAllEntries(data.books || []);
+  })
   .catch(() => {
     document.getElementById('content').innerHTML = '<div class="err">books.json을 불러오지 못했어요. 파일이 같은 폴더에 있는지 확인하세요.</div>';
   });
