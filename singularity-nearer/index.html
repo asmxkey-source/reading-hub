@@ -41,6 +41,23 @@
   }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 24px 96px; }
 
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    padding: 7px 14px 7px 12px;
+    border-radius: 9999px;
+    margin-bottom: 24px;
+    transition: background 0.15s ease, transform 0.1s ease;
+    letter-spacing: -0.01em;
+  }
+  .back-link:hover { background: var(--accent-soft); }
+  .back-link:active { transform: scale(0.96); }
+
   header.hero {
     border-bottom: 1px solid var(--line);
     padding-bottom: 28px;
@@ -388,6 +405,13 @@
 </head>
 <body>
 <div class="wrap">
+  <a class="back-link" href="../">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+    독서 기록
+  </a>
   <header class="hero">
     <h1 id="m-title">독서 모임</h1>
     <div class="meta">
