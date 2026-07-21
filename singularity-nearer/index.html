@@ -217,6 +217,15 @@
   .member-content {
     border-left: 3px solid var(--accent-soft);
     padding: 8px 0 8px 16px;
+    scroll-margin-top: 16px;
+  }
+  .member-content.flash-highlight {
+    animation: flashHighlight 2.6s ease;
+  }
+  @keyframes flashHighlight {
+    0% { background: #fff2a6; border-left-color: #eab308; }
+    35% { background: #fff2a6; border-left-color: #eab308; }
+    100% { background: transparent; border-left-color: var(--accent-soft); }
   }
   .member-name {
     font-weight: 600;
@@ -761,16 +770,50 @@ function showError(msg) {
   el.style.display = 'block';
 }
 
+function handleDeepLink() {
+  const m = location.hash.match(/^#log-(\d+)-(.+)$/);
+  if (!m) return;
+  const targetSession = parseInt(m[1]);
+  let targetName;
+  try { targetName = decodeURIComponent(m[2]); } catch { targetName = m[2]; }
+
+  const master = document.getElementById('log-master');
+  if (master) master.open = true;
+
+  let targetBlock = null;
+  document.querySelectorAll('.session-block').forEach(b => {
+    const numEl = b.querySelector('.session-num');
+    if (numEl && parseInt(numEl.textContent) === targetSession) {
+      b.open = true;
+      targetBlock = b;
+    }
+  });
+  if (!targetBlock) return;
+
+  const mc = targetBlock.querySelector(`.member-content[data-name="${CSS.escape(targetName)}"]`);
+  if (!mc) return;
+
+  mc.classList.remove('flash-highlight');
+  void mc.offsetWidth;
+  mc.classList.add('flash-highlight');
+  setTimeout(() => {
+    mc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 0);
+  setTimeout(() => mc.classList.remove('flash-highlight'), 2600);
+}
+
 function loadText(text, source) {
   try {
     const comps = parseChat(text);
     render(comps);
     document.getElementById('source-note').textContent = `${source} · ${comps.length}건 인식`;
     document.getElementById('err').style.display = 'none';
+    handleDeepLink();
   } catch (e) {
     showError(`파싱 실패: ${e.message}`);
   }
 }
+window.addEventListener('hashchange', handleDeepLink);
 
 const dropEl = document.getElementById('drop');
 const fileInput = document.getElementById('file-input');

@@ -393,7 +393,7 @@ function runSearch(query) {
   }
   const summary = `<div class="search-summary"><b>${escapeHtml(q)}</b> — 결과 ${hits.length}건</div>`;
   const items = hits.map(e => `
-    <a class="result-card" href="./${encodeURIComponent(e.bookSlug)}/">
+    <a class="result-card" href="./${encodeURIComponent(e.bookSlug)}/#log-${e.session}-${encodeURIComponent(e.name)}">
       <div class="result-meta">
         <span class="result-book">📖 ${escapeHtml(e.bookTitle)}</span>
         <span class="result-sep">·</span>
