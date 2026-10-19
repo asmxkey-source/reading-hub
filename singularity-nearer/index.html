@@ -519,7 +519,8 @@ function generateSchedule() {
 function parseChat(text) {
   const completions = [];
   const namePattern = CONFIG.members.join('|');
-  const re = new RegExp(`(\\d{1,2})[\\/.](\\d{1,2})\\s+(${namePattern})\\s*_\\s*(\\d+)\\s*회\\s*차\\s*미\\s*션\\s*완\\s*료[^\\n]*`, 'g');
+  // 메시지 첫머리([이름] [오전/오후 H:MM])에 쓴 인증만 인정 — 공지·예시 속 양식은 제외
+  const re = new RegExp(`^\\[[^\\]\\n]+\\][ \\t]*\\[(?:오전|오후)[ \\t]*\\d{1,2}:\\d{2}\\][ \\t]*(\\d{1,2})[\\/.](\\d{1,2})\\s+(${namePattern})\\s*_\\s*(\\d+)\\s*회\\s*차\\s*미\\s*션\\s*완\\s*료[^\\n]*`, 'gm');
   const stopRe = /\n(?:\[[^\]\n]+\]\s*\[(?:오전|오후)\s*\d|-{5,}\s*\d{4}년)/;
   const year = parseDate(CONFIG.startDate).getFullYear();
   let m;
