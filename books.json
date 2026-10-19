@@ -2,6 +2,16 @@
   "hubTitle": "독서 기록",
   "books": [
     {
+      "slug": "sapiens",
+      "title": "사피엔스",
+      "author": "유발 하라리",
+      "members": ["규리", "진영"],
+      "startDate": "2026-10-19",
+      "endDate": "2026-11-13",
+      "totalSessions": 20,
+      "status": "auto"
+    },
+    {
       "slug": "singularity-nearer",
       "title": "마침내 특이점이 시작된다",
       "author": "레이 커즈와일",
