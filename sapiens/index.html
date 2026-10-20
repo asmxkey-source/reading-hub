@@ -401,6 +401,10 @@
     table.matrix th:last-child, table.matrix td:last-child { padding-right: 12px; }
     .cell { font-size: 11px; }
   }
+  /* 독서 로그 이미지 (img/이름_회차.png) */
+  .member-images { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+  .member-images a { display: block; line-height: 0; }
+  .member-images img { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 </style>
 </head>
 <body>
@@ -745,7 +749,7 @@ function renderLogs(completions, sched) {
         if (!e) return '';
         const text = e.content ? escapeHtml(e.content) : '<em style="color:var(--ink-soft)">(느낀점 없음)</em>';
         return `
-          <div class="member-content" data-name="${escapeHtml(name)}">
+          <div class="member-content" data-name="${escapeHtml(name)}" data-session="${n}">
             <div class="member-name">${escapeHtml(name)}<span class="member-date">${fmtShort(e.claimedDate)}</span></div>
             <div class="member-text">${text}</div>
           </div>`;
@@ -786,6 +790,51 @@ function renderLogs(completions, sched) {
       applyFilter();
       masterEl.open = true;
     });
+  });
+}
+
+// 독서 로그 이미지: 책 폴더의 img/에 "이름_회차.png", "이름_회차-2.png" 형식으로 둔다.
+// 목록은 img/index.json(add-image.bat이 갱신) + GitHub 저장소 목록(웹에서 올린 파일 대비)을 합친다.
+const IMG_RE = /^(.+)_(\d+)(?:-(\d+))?\.(png|jpe?g|gif|webp)$/i;
+let IMAGES = {};
+
+async function loadImages() {
+  const files = new Set();
+  try {
+    const r = await fetch('img/index.json?_=' + Date.now());
+    if (r.ok) (await r.json()).forEach(f => files.add(f));
+  } catch {}
+  const host = location.hostname.match(/^([^.]+)\.github\.io$/);
+  const parts = location.pathname.split('/').filter(Boolean);
+  if (host && parts.length >= 2) {
+    try {
+      const r = await fetch(`https://api.github.com/repos/${host[1]}/${parts[0]}/contents/${parts[1]}/img`);
+      if (r.ok) (await r.json()).forEach(f => { if (f.type === 'file') files.add(f.name); });
+    } catch {}
+  }
+  const map = {};
+  files.forEach(file => {
+    const m = file.normalize('NFC').match(IMG_RE);
+    if (!m) return;
+    const key = `${m[1]}|${+m[2]}`;
+    (map[key] = map[key] || []).push({ file, order: m[3] ? +m[3] : 1 });
+  });
+  Object.values(map).forEach(list => list.sort((a, b) => a.order - b.order));
+  IMAGES = map;
+}
+
+function attachImages() {
+  document.querySelectorAll('.member-content').forEach(mc => {
+    mc.querySelectorAll('.member-images').forEach(el => el.remove());
+    const list = IMAGES[`${mc.dataset.name}|${mc.dataset.session}`];
+    if (!list) return;
+    const box = document.createElement('div');
+    box.className = 'member-images';
+    box.innerHTML = list.map(({ file }) => {
+      const src = 'img/' + encodeURIComponent(file);
+      return `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${escapeHtml(file)}" loading="lazy"></a>`;
+    }).join('');
+    mc.appendChild(box);
   });
 }
 
@@ -833,6 +882,7 @@ function loadText(text, source) {
     render(comps);
     document.getElementById('source-note').textContent = `${source} · ${comps.length}건 인식`;
     document.getElementById('err').style.display = 'none';
+    attachImages();
     handleDeepLink();
   } catch (e) {
     showError(`파싱 실패: ${e.message}`);
@@ -877,6 +927,7 @@ fetch('chat.txt?_=' + Date.now())
     document.getElementById('upload-section').style.display = 'block';
     renderEmpty();
   });
+loadImages().then(attachImages);
 </script>
 </body>
 </html>
