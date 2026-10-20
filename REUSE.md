@@ -2,6 +2,12 @@
 
 `reading-hub` 안에 새 책을 추가하는 4단계. 새 저장소·새 URL을 만들 필요 없습니다.
 
+> **혼자 읽는 책**이면 아래 4단계에서 이것만 다릅니다.
+> - 1단계: `_templates/solo/` 폴더의 `index.html`과 `log.txt`를 복사 (chat.txt 대신 log.txt)
+> - 2단계: CONFIG의 `members`는 `['진영']` 한 명
+> - 3단계: books.json 항목에 `"type": "solo"` (함께 읽는 책은 `"type": "group"`)
+> - 기록은 `update-log.bat` 또는 GitHub 웹에서 `log.txt` 수정 (README 참고)
+
 ## 시작 전 정해두기
 
 | 항목 | 예시 |
@@ -41,6 +47,7 @@ const CONFIG = {
 ```json
 {
   "slug": "sapiens",
+  "type": "group",
   "title": "사피엔스",
   "author": "유발 하라리",
   "members": ["진영", "민수", "소영"],

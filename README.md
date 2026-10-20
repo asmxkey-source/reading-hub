@@ -27,9 +27,33 @@ reading-hub/
 
 각 책 폴더는 **독립적**입니다 — 책마다 멤버·기간·페이지가 달라도 됩니다.
 
+## 함께 / 혼자 탭
+허브 위쪽 **[👥 함께] [🙋 혼자]** 탭으로 나뉩니다. `books.json`의 `type`으로 구분합니다.
+
+| | 함께 (`"type": "group"`) | 혼자 (`"type": "solo"`) |
+|---|---|---|
+| 기록 파일 | `chat.txt` (카톡 내보내기) | `log.txt` (직접 작성) |
+| 반영 | `update-chat.bat` | `update-log.bat` 또는 GitHub 웹에서 수정 |
+| 템플릿 | 기존 함께 책 폴더 복사 | `_templates/solo/` 복사 |
+
+- `type`이 없으면 함께로 봅니다.
+- 혼자 탭 바로가기: `https://asmxkey-source.github.io/reading-hub/#solo`
+- 검색창은 두 탭의 기록을 모두 검색합니다.
+
 ## 새 책 모임 추가하기 → `REUSE.md` 참고
 
-## 운영 (데이터 갱신)
+## 운영 — 혼자 읽는 책 (`log.txt`)
+양식: `날짜 N회차 완료` 한 줄, 다음 줄부터 후기. 다음 `날짜 N회차 완료` 줄 전까지가 그 회차 후기입니다. `#`으로 시작하는 줄은 무시합니다.
+```
+10/20 1회차 완료
+1. 인지혁명
+• 허구를 믿는 능력이 협력의 바탕
+```
+**PC (기본)**: `update-log.bat` 더블클릭 → 최신 내용 받기(git pull) → 메모장으로 `log.txt`가 열림 → 작성·저장(Ctrl+S) → 창에서 Enter → 인식된 회차 확인 후 Y → push
+
+**휴대폰·다른 PC (보조)**: github.com/asmxkey-source/reading-hub → 책 폴더 → `log.txt` → ✏️ 연필 → 작성 → **Commit changes**. bat은 시작할 때 pull을 하므로 웹에서 쓴 내용도 그대로 이어집니다. 단, 같은 내용을 웹과 PC에서 **동시에** 고쳐 두면 pull이 충돌할 수 있으니 한쪽에서 올린 뒤 다른 쪽을 쓰세요.
+
+## 운영 — 함께 읽는 책 (`chat.txt`)
 1. PC 카톡에서 대화 내보내기(텍스트만)
 2. 해당 책 폴더의 `chat.txt` 덮어쓰기 (예: `singularity/chat.txt`)
 3. GitHub Desktop → Summary → Commit → Push

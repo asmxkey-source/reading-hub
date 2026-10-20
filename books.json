@@ -3,6 +3,7 @@
   "books": [
     {
       "slug": "sapiens",
+      "type": "group",
       "title": "사피엔스",
       "author": "유발 하라리",
       "members": ["규리", "진영"],
@@ -13,6 +14,7 @@
     },
     {
       "slug": "singularity-nearer",
+      "type": "group",
       "title": "마침내 특이점이 시작된다",
       "author": "레이 커즈와일",
       "members": ["규리", "진영"],
@@ -23,6 +25,7 @@
     },
     {
       "slug": "singularity",
+      "type": "group",
       "title": "특이점이 온다",
       "author": "레이 커즈와일",
       "members": ["규리", "진영", "유리"],
